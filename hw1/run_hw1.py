@@ -5,33 +5,32 @@ from ift6163.infrastructure.rl_trainer import RL_Trainer
 from ift6163.agents.bc_agent import BCAgent
 from ift6163.policies.loaded_gaussian_policy import LoadedGaussianPolicy
 
+
 class BC_Trainer(object):
 
     def __init__(self, params):
-
         #######################
         ## AGENT PARAMS
         #######################
-        print ("params2: ", params)
-        print ("params: ", params["alg"]['n_layers'])
+        print("params2: ", params)
+        print("params: ", params["alg"]['n_layers'])
         self.params = params
 
         ################
         ## RL TRAINER
         ################
 
-        self.rl_trainer = RL_Trainer(self.params, agent_class=BCAgent) ## HW1: you will modify this
+        self.rl_trainer = RL_Trainer(self.params, agent_class=BCAgent)  ## HW1: you will modify this
 
         #######################
         ## LOAD EXPERT POLICY
         #######################
         ### Correcting for hydra logging folder. 
         print('Loading expert policy from...', '../../../' + self.params["env"]['expert_policy_file'])
-        self.loaded_expert_policy = LoadedGaussianPolicy( '../../../' + self.params["env"]['expert_policy_file'])
+        self.loaded_expert_policy = LoadedGaussianPolicy('../../../' + self.params["env"]['expert_policy_file'])
         print('Done restoring expert policy...')
 
     def run_training_loop(self):
-
         self.rl_trainer.run_training_loop(
             n_iter=self.params['alg']['n_iter'],
             initial_expertdata=self.params['env']['expert_data'],
@@ -41,23 +40,19 @@ class BC_Trainer(object):
             expert_policy=self.loaded_expert_policy,
         )
 
+
 import hydra, json
 from omegaconf import DictConfig, OmegaConf
 
+
 @hydra.main(config_path="conf", config_name="config")
 def my_main(cfg: DictConfig):
-    
     returns = my_app(cfg)
-    print ("returns: ", returns)
-    
-    
-def my_app(cfg: DictConfig): 
+    print("returns: ", returns)
+
+
+def my_app(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
-    import os
-    print("Command Dir:", os.getcwd())
-    params = vars(cfg)
-    # print ("params: ", json.dumps(params, indent=4))
-    print ("params: ", params)
 
     ##################################
     ### CREATE DIRECTORY FOR LOGGING
@@ -66,11 +61,12 @@ def my_app(cfg: DictConfig):
     if cfg.alg.do_dagger:
         # Use this prefix when submitting. The auto-grader uses this prefix.
         logdir_prefix = 'q2_'
-        assert cfg.alg.n_iter>1, ('DAGGER needs more than 1 iteration (n_iter>1) of training, to iteratively query the expert and train (after 1st warmstarting from behavior cloning).')
+        assert cfg.alg.n_iter > 1, (
+            'DAGGER needs more than 1 iteration (n_iter>1) of training, to iteratively query the expert and train (after 1st warmstarting from behavior cloning).')
     else:
         # Use this prefix when submitting. The auto-grader uses this prefix.
         logdir_prefix = 'q1_'
-        assert cfg.alg.n_iter==1, ('Vanilla behavior cloning collects expert data just once (n_iter=1)')
+        assert cfg.alg.n_iter == 1, ('Vanilla behavior cloning collects expert data just once (n_iter=1)')
 
     ## directory for logging
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
@@ -81,9 +77,8 @@ def my_app(cfg: DictConfig):
     from omegaconf import open_dict
     with open_dict(cfg):
         cfg.logging.logdir = logdir
-    if not(os.path.exists(logdir)):
+    if not (os.path.exists(logdir)):
         os.makedirs(logdir)
-
 
     ###################
     ### RUN TRAINING
@@ -91,6 +86,7 @@ def my_app(cfg: DictConfig):
 
     trainer = BC_Trainer(cfg)
     out = trainer.run_training_loop()
+    print(out)
 
 if __name__ == "__main__":
     my_main()
