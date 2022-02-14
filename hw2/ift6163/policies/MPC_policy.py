@@ -68,7 +68,7 @@ class MPCPolicy(BasePolicy):
                     best_sequence_idx = np.argmax(estimated_sequence_values)
                     top_n_sequences.append(action_sequences[best_sequence_idx])
                     estimated_sequence_values[best_sequence_idx] = -float('inf')
-                return np.array(top_n_sequences).T  # shape should be (num_sequences, num_elites)
+                return np.array(top_n_sequences)  # shape should be (num_sequences, self.cem_num_elites, self.ac_dim)
 
             for i in range(self.cem_iterations):
                 if i == 0:
@@ -78,9 +78,9 @@ class MPCPolicy(BasePolicy):
                     action_sequences = np.random.normal(elite_mean, elite_std, (num_sequences, horizon, self.ac_dim))  # sample from Gaussian
 
                 elite_sequences = get_elite_sequences(action_sequences)
-                assert elite_sequences.shape == (action_sequences.shape[0], self.cem_num_elites)
-                elite_mean = np.mean(elite_sequences, axis=1)
-                elite_std = np.std(elite_sequences, axis=1)
+                assert elite_sequences.shape == (self.cem_num_elites, horizon, self.ac_dim)
+                elite_mean = np.mean(elite_sequences, axis=0)
+                elite_std = np.std(elite_sequences, axis=0)
 
                 # - Sample candidate sequences from a Gaussian with the current
                 #   elite mean and variance
