@@ -77,10 +77,7 @@ class DQNCritic(BaseCritic):
         q_t_values = torch.gather(qa_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
 
         # DONE compute the Q-values from the target network
-        # TODO: it says target network about ^ does that mean I'm supposed to use q_net_target?
         qa_tp1_values = self.q_net_target(next_ob_no)
-
-        # TODO: figure out if I have the q_net and the q_net_target backwards
 
         if self.double_q:
             # You must fill this part for Q2 of the Q-learning portion of the homework.
@@ -88,7 +85,8 @@ class DQNCritic(BaseCritic):
             # is being updated, but the Q-value for this action is obtained from the
             # target Q-network. Please review Lecture 8 for more details,
             # and page 4 of https://arxiv.org/pdf/1509.06461.pdf is also a good reference.
-            q_tp1, _ = self.q_net(ob_no, ac_na).max(dim=1)  # TODO: is this correct? what is going on with dim?
+            best_action_index = qa_t_values.argmax(dim=1)
+            q_tp1 = torch.gather(qa_tp1_values, 1, best_action_index).squeeze(1)  # TODO: what about the unsqueeze?
         else:
             q_tp1, _ = qa_tp1_values.max(dim=1)
 
