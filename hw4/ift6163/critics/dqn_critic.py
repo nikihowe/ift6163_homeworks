@@ -78,7 +78,7 @@ class DQNCritic(BaseCritic):
 
         # DONE compute the Q-values from the target network
         # TODO: it says target network about ^ does that mean I'm supposed to use q_net_target?
-        qa_tp1_values = self.q_net_target(ob_no, ac_na)
+        qa_tp1_values = self.q_net_target(next_ob_no)
 
         # TODO: figure out if I have the q_net and the q_net_target backwards
 
