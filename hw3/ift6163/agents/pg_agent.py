@@ -109,7 +109,8 @@ class PGAgent(BaseAgent):
             cur_std = np.std(q_values)
             values = values_unnormalized * cur_std + cur_mean
 
-            if self.gae_lambda is not None:
+            if self.gae_lambda is not None and self.gae_lambda != "None":
+                # print("gae lambda is", self.gae_lambda, "of type", type(self.gae_lambda))
                 # append a dummy T+1 value for simpler recursive calculation
                 values = np.append(values, [0])
 
@@ -134,9 +135,9 @@ class PGAgent(BaseAgent):
                         advantages[i] = delta_t
                     else:
                         delta_t = rews[i] + self.gamma * values[i + 1] - values[i]
-                        advantages[i] = delta_t + self.gamma * advantages[i + 1]
+                        advantages[i] = delta_t + self.gamma * self.gae_lambda * advantages[i + 1]
 
-                    # TODO: check if above is correct (prob with classmate)
+                    # NOTE: would be nice to check if above is correct (prob with classmate) (I think it is)
                 # remove dummy advantage
                 advantages = advantages[:-1]
 
@@ -154,7 +155,7 @@ class PGAgent(BaseAgent):
             # and a standard deviation of one
             adv_mean = np.mean(advantages)
             adv_std = np.std(advantages)
-            advantages = (advantages - adv_mean) / (adv_std + 1e-10)
+            advantages = (advantages - adv_mean) / (adv_std + 1e-9)
 
         return advantages
 

@@ -1,4 +1,6 @@
 from .base_critic import BaseCritic
+import numpy as np  # niki
+import torch
 from torch import nn
 from torch import optim
 
@@ -19,6 +21,7 @@ class BootstrappedContinuousCritic(nn.Module, BaseCritic):
         Note: batch self.size /n/ is defined at runtime.
         is None
     """
+
     def __init__(self, hparams):
         super().__init__()
         self.ob_dim = hparams['ob_dim']
@@ -86,5 +89,31 @@ class BootstrappedContinuousCritic(nn.Module, BaseCritic):
         #       to 0) when a terminal state is reached
         # HINT: make sure to squeeze the output of the critic_network to ensure
         #       that its dimensions match the reward
+        # ob_no = ptu.from_numpy(ob_no)
+        # ac_na = ptu.from_numpy(ac_na)  # TODO: do we never use actions in the loss calc?
+        # next_ob_no = ptu.from_numpy(next_ob_no)
+        reward_n = ptu.from_numpy(reward_n)
+        terminal_n = ptu.from_numpy(terminal_n)
+
+        for i in range(self.num_grad_steps_per_target_update * self.num_target_updates):
+            if i % self.num_grad_steps_per_target_update == 0:
+                v_s_prime = self.critic_network(next_ob_no).squeeze()
+                v_s_prime = v_s_prime * (1 - terminal_n)  # zero out the terminal entries
+                # print("tn", type(terminal_n))
+                # zero_indices = torch.where(terminal_n == 1)
+                # v_s_prime[zero_indices] = 0.
+                # print("reward", reward_n.shape)
+                # print("v s prime", v_s_prime.shape)
+                target_values = reward_n + self.gamma * v_s_prime
+                target_values = target_values.detach()  # TODO: figure out if this is right (breaks without...)
+
+            self.optimizer.zero_grad()
+            # print("ob no is of type", type(ob_no))
+            predictions = self(ob_no).squeeze()
+            # print("predictions", predictions.shape)
+            # print("targets", target_values.shape)
+            loss = self.loss(predictions, target_values)
+            loss.backward()
+            self.optimizer.step()
 
         return loss.item()

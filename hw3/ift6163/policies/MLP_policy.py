@@ -168,7 +168,7 @@ class MLPPolicyPG(MLPPolicy):
             q_values_normalized = (q_values - q_values_mean) / (q_values_std + 1e-10)
             targets = ptu.from_numpy(q_values_normalized)
 
-            baseline_estimates = self.baseline(observations)
+            baseline_estimates = self.baseline(observations).squeeze()  # squeeze to remove trailing singleton dimension
 
             self.baseline_optimizer.zero_grad()
             baseline_loss = self.baseline_loss(baseline_estimates, targets)
@@ -196,8 +196,34 @@ class MLPPolicyPG(MLPPolicy):
 
 
 class MLPPolicyAC(MLPPolicy):
-    # TODO: check if this is right (I just copied the above class essentially)
+    # TODO: check if this is right (copied from MLPPolicyPG)
     def update(self, observations, actions, adv_n=None):
-        # TODO: update the policy and return the loss
+        # observations = ptu.from_numpy(observations)
+        actions = ptu.from_numpy(actions)
+        assert adv_n is not None
+        advantages = adv_n
+        # advantages = ptu.from_numpy(adv_n)
+
+        # DONE: update the policy using policy gradient
+        # HINT1: Recall that the expression that we want to MAXIMIZE
+        # is the expectation over collected trajectories of:
+        # sum_{t=0}^{T-1} [grad [log pi(a_t|s_t) * (Q_t - b_t)]]
+        # HINT2: you will want to use the `log_prob` method on the distribution returned
+        # by the `forward` method
+        # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
+        # HINT4: use self.optimizer to optimize the loss. Remember to
+        # 'zero_grad' first
+        policy_dist_out = self(observations)
+        log_prob_output = policy_dist_out.log_prob(actions)
+
+        self.optimizer.zero_grad()  # TODO: is this the correct place to put this?
+        loss = -torch.sum(log_prob_output * advantages)  # negative because we want to maximize
+        loss.backward()
+        self.optimizer.step()
 
         return loss.item()
+
+    # def update(self, observations, actions, adv_n=None):
+        # DONE?: update the policy and return the loss
+
+        # return loss.item()

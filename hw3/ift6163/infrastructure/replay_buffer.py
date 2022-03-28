@@ -46,6 +46,8 @@ class ReplayBuffer(object):
                 [self.concatenated_rews, concatenated_rews]
             )[-self.max_size:]
 
+        # print("success")
+
     ########################################
     ########################################
 
@@ -64,15 +66,14 @@ class ReplayBuffer(object):
         assert self.obs.shape[0] == self.acs.shape[0] == self.concatenated_rews.shape[0] == self.next_obs.shape[0] == \
                self.terminals.shape[0]
         rand_indices = np.random.permutation(self.obs.shape[0])[:batch_size]
-        return self.obs[rand_indices], self.acs[rand_indices], self.concatenated_rews[rand_indices], self.next_obs[
-            rand_indices], self.terminals[rand_indices]
+        return self.obs[rand_indices], self.acs[rand_indices], self.concatenated_rews[rand_indices], \
+               self.next_obs[rand_indices], self.terminals[rand_indices]
 
     def sample_recent_data(self, batch_size=1, concat_rew=True):
 
         if concat_rew:
-            return self.obs[-batch_size:], self.acs[-batch_size:], self.concatenated_rews[-batch_size:], self.next_obs[
-                                                                                                         -batch_size:], self.terminals[
-                                                                                                                        -batch_size:]
+            return self.obs[-batch_size:], self.acs[-batch_size:], self.concatenated_rews[-batch_size:], \
+                   self.next_obs[-batch_size:], self.terminals[-batch_size:]
         else:
             num_recent_rollouts_to_return = 0
             num_datapoints_so_far = 0
@@ -82,6 +83,8 @@ class ReplayBuffer(object):
                 index -= 1
                 num_recent_rollouts_to_return += 1
                 num_datapoints_so_far += get_pathlength(recent_rollout)
+                if index < -len(self.paths):
+                    index = -1  # recommended by Mahan for the case when there's not yet enough in the replay buffer
             rollouts_to_return = self.paths[-num_recent_rollouts_to_return:]
             observations, actions, next_observations, terminals, concatenated_rews, unconcatenated_rews = convert_listofrollouts(
                 rollouts_to_return)
