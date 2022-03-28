@@ -2,8 +2,8 @@ import os
 import time
 
 import sys
-print(sys.path)
 
+print(sys.path)
 
 from ift6163.agents.dqn_agent import DQNAgent
 from ift6163.agents.ddpg_agent import DDPGAgent
@@ -12,6 +12,7 @@ from ift6163.infrastructure.rl_trainer import RL_Trainer
 import hydra, json
 from omegaconf import DictConfig, OmegaConf
 from ift6163.infrastructure.dqn_utils import get_env_kwargs
+
 
 class offpolicy_Trainer(object):
 
@@ -40,15 +41,15 @@ class offpolicy_Trainer(object):
         ## RL TRAINER
         ################
 
-        self.rl_trainer = RL_Trainer(self.params , agent_class =  agent)
+        self.rl_trainer = RL_Trainer(self.params, agent_class=agent)
 
     def run_training_loop(self):
 
         self.rl_trainer.run_training_loop(
             self.params['n_iter'],
-            collect_policy = self.rl_trainer.agent.actor,
-            eval_policy = self.rl_trainer.agent.actor,
-            )
+            collect_policy=self.rl_trainer.agent.actor,
+            eval_policy=self.rl_trainer.agent.actor,
+        )
 
 
 @hydra.main(config_path="conf", config_name="config")
@@ -56,18 +57,18 @@ def my_main(cfg: DictConfig):
     my_app(cfg)
 
 
-def my_app(cfg: DictConfig): 
+def my_app(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     import os
     print("Command Dir:", os.getcwd())
     # print ("params: ", json.dumps(params, indent=4))
-    if cfg['env_name']=='reacher-ift6163-v0':
-        cfg['ep_len']=200
-    if cfg['env_name']=='cheetah-ift6163-v0':
-        cfg['ep_len']=500
-    if cfg['env_name']=='obstacles-ift6163-v0':
-        cfg['ep_len']=100
-        
+    if cfg['env_name'] == 'reacher-ift6163-v0':
+        cfg['ep_len'] = 200
+    if cfg['env_name'] == 'cheetah-ift6163-v0':
+        cfg['ep_len'] = 500
+    if cfg['env_name'] == 'obstacles-ift6163-v0':
+        cfg['ep_len'] = 100
+
     params = vars(cfg)
     # params.extend(env_args)
     for key, value in cfg.items():
@@ -76,12 +77,11 @@ def my_app(cfg: DictConfig):
         env_args = get_env_kwargs(cfg['env_name'])
         for key, value in env_args.items():
             params[key] = value
-    print ("params: ", params)
+    print("params: ", params)
 
     ##################################
     ### CREATE DIRECTORY FOR LOGGING
     ##################################
-
 
     logdir_prefix = 'hw3_'  # keep for autograder
 
@@ -93,7 +93,7 @@ def my_app(cfg: DictConfig):
     logdir = logdir_prefix + cfg.exp_name + '_' + cfg.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
     logdir = os.path.join(data_path, logdir)
     params['logdir'] = logdir
-    if not(os.path.exists(logdir)):
+    if not (os.path.exists(logdir)):
         os.makedirs(logdir)
     from omegaconf import open_dict
     with open_dict(cfg):
@@ -109,8 +109,8 @@ def my_app(cfg: DictConfig):
     trainer.run_training_loop()
 
 
-
 if __name__ == "__main__":
     import os
+
     print("Command Dir:", os.getcwd())
     my_main()
