@@ -13,6 +13,7 @@ from torch import distributions
 from ift6163.infrastructure import pytorch_util as ptu
 from ift6163.policies.base_policy import BasePolicy
 
+
 class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     @classu.hidden_member_initialize
@@ -34,19 +35,19 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
         if self._discrete:
             self._logits_na = ptu.build_mlp(input_size=self._ob_dim,
-                                           output_size=self._ac_dim,
-                                           n_layers=self._n_layers,
-                                           size=self._size)
+                                            output_size=self._ac_dim,
+                                            n_layers=self._n_layers,
+                                            size=self._size)
             self._logits_na.to(ptu.device)
             self._mean_net = None
             self._logstd = None
             self._optimizer = optim.Adam(self._logits_na.parameters(),
-                                        self._learning_rate)
+                                         self._learning_rate)
         else:
             self._logits_na = None
             self._mean_net = ptu.build_mlp(input_size=self._ob_dim,
-                                      output_size=self._ac_dim,
-                                      n_layers=self._n_layers, size=self._size)
+                                           output_size=self._ac_dim,
+                                           n_layers=self._n_layers, size=self._size)
             self._mean_net.to(ptu.device)
             if self._deterministic:
                 self._optimizer = optim.Adam(
@@ -87,16 +88,23 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     # query the policy with observation(s) to get selected action(s)
     # DONE: got from HW3 (note it's different from HW1)
+    # NOTE: also modified to have tanh output in deterministic case
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         if len(obs.shape) > 1:
             observation = obs
         else:
             observation = obs[None]
 
-        # DONE return the action that the policy prescribes
         observation = torch.FloatTensor(observation)
-        action = self(observation).sample()  # NOTE: added sample because now it's a distribution here
-        return action.detach().numpy()
+
+        # DONE return the action that the policy prescribes
+        if self._deterministic:
+            action = ptu.to_numpy(self._mean_net(observation).detach())
+            action = np.tanh(action)
+        else:
+            action = ptu.to_numpy(
+                self(observation).sample().detach())  # NOTE: added sample because now it's a distribution here
+        return action
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -114,8 +122,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             return action_distribution
         else:
             if self._deterministic:
-                ##  TODO output for a deterministic policy
-                action_distribution = TODO
+                ##  DONE output for a deterministic policy
+                # action_distribution =
+                mean = self._mean_net(observation)
+                return mean
             else:
                 batch_mean = self._mean_net(observation)
                 scale_tril = torch.diag(torch.exp(self._logstd))
@@ -127,12 +137,12 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                 )
         return action_distribution
 
+
 #####################################################
 #####################################################
 
 class MLPPolicyPG(MLPPolicy):
     def __init__(self, ac_dim, ob_dim, n_layers, size, **kwargs):
-
         super().__init__(ac_dim, ob_dim, n_layers, size, **kwargs)
         self._baseline_loss = nn.MSELoss()
 
@@ -201,6 +211,7 @@ class MLPPolicyPG(MLPPolicy):
         pred = self._baseline(observations)
         return ptu.to_numpy(pred.squeeze())
 
+
 class MLPPolicyAC(MLPPolicy):
     # DONE: got from HW3
     def update(self, observations, actions, adv_n=None):
@@ -228,11 +239,13 @@ class MLPPolicyAC(MLPPolicy):
         self.optimizer.step()
 
         return loss.item()
-    
+
+
 class ConcatMLP(MLPPolicy):
     """
     Concatenate inputs along dimension and then pass through MLP.
     """
+
     def __init__(self, *args, dim=1, **kwargs):
         super().__init__(*args, **kwargs)
         self._dim = dim
@@ -246,10 +259,11 @@ class MLPPolicyDeterministic(MLPPolicy):
     """
     Concatenate inputs along dimension and then pass through MLP.
     """
+
     def __init__(self, *args, **kwargs):
         kwargs['deterministic'] = True
         super().__init__(*args, **kwargs)
-        
+
     def update(self, observations, q_fun):
         # TODO: update the policy and return the loss
         ## Hint you will need to use the q_fun for the loss

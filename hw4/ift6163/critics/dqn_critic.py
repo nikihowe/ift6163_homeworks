@@ -72,6 +72,9 @@ class DQNCritic(BaseCritic):
         next_ob_no = ptu.from_numpy(next_ob_no)
         reward_n = ptu.from_numpy(reward_n)
         terminal_n = ptu.from_numpy(terminal_n)
+        # print("ob no shape: ", ob_no.shape)
+        # print("ac na shape: ", ac_na.shape)
+        # print("next ob no shape", next_ob_no.shape)
 
         qa_t_values = self.q_net(ob_no)
         q_t_values = torch.gather(qa_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
@@ -86,7 +89,8 @@ class DQNCritic(BaseCritic):
             # target Q-network. Please review Lecture 8 for more details,
             # and page 4 of https://arxiv.org/pdf/1509.06461.pdf is also a good reference.
             best_action_index = qa_t_values.argmax(dim=1)
-            q_tp1 = torch.gather(qa_tp1_values, 1, best_action_index).squeeze(1)  # TODO: what about the unsqueeze?
+            q_tp1 = torch.gather(qa_tp1_values, 1, best_action_index.unsqueeze(1)).squeeze(1)
+            # I won't deny I'm confused what's happening here, but it does match the unsqueeze above
         else:
             q_tp1, _ = qa_tp1_values.max(dim=1)
 
@@ -117,6 +121,6 @@ class DQNCritic(BaseCritic):
     def qa_values(self, obs):
         obs = ptu.from_numpy(obs)
         qa_values = self.q_net(obs)
-        if self.double_q:
-            qa_values = qa_values.view(-1, 2, self.ac_dim)
+        # if self.double_q:  # As per Mahan's suggestion
+        #     qa_values = qa_values.view(-1, 2, self.ac_dim)
         return ptu.to_numpy(qa_values)

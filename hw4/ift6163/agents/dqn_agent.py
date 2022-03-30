@@ -46,13 +46,12 @@ class DQNAgent(object):
         # DONE store the latest observation ("frame") into the replay buffer
         # HINT: the replay buffer used here is `MemoryOptimizedReplayBuffer`
         # in dqn_utils.py
-        self.replay_buffer_idx = -1
-        self.replay_buffer.store_frame(self.last_obs)
+        self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
 
         eps = self.exploration.value(self.t)
 
         # DONE use epsilon greedy exploration when selecting action
-        perform_random_action = np.random.random() < eps
+        perform_random_action = np.random.random() < eps or self.t < self.learning_starts
         if perform_random_action:
             # HINT: take random action 
             # with probability eps (see np.random.random())
@@ -97,7 +96,7 @@ class DQNAgent(object):
 
             # DONE fill in the call to the update function using the appropriate tensors
             log = self.critic.update(
-                ob_no, ac_na, re_n, next_ob_no, terminal_n
+                ob_no, ac_na, next_ob_no, re_n, terminal_n
             )
 
             # DONE update the target network periodically

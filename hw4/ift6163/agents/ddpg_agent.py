@@ -54,16 +54,16 @@ class DDPGAgent(object):
             Note that self.last_obs must always point to the new latest observation.
         """        
 
-        # TODO store the latest observation ("frame") into the replay buffer
+        # DONE store the latest observation ("frame") into the replay buffer
         # HINT: the replay buffer used here is `MemoryOptimizedReplayBuffer`
             # in dqn_utils.py
-        self.replay_buffer_idx = -1
+        self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
 
         # TODO add noise to the deterministic policy
         perform_random_action = TODO
         # HINT: take random action 
         action = TODO
-        
+
         # TODO take a step in the environment using the action from the policy
         # HINT1: remember that self.last_obs must always point to the newest/latest observation
         # HINT2: remember the following useful function that you've seen before:

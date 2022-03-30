@@ -34,6 +34,7 @@ class RL_Trainer(object):
         #############
 
         # Get params, create logger
+        self.log_video = None  # Niki added as default
         self.params = params
         self.logger = Logger(self.params['logdir'])
 
@@ -232,10 +233,10 @@ class RL_Trainer(object):
         train_video_paths = None
 
         # n: I removed these lines, since this RL trainer appears to have no log_video attribute
-        # if self.log_video:
-        #     print('\nCollecting train rollouts to be used for saving videos...')
-        #     DONE look in utils and implement sample_n_trajectories
-        # train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+        if self.log_video:
+            print('\nCollecting train rollouts to be used for saving videos...')
+            # DONE look in utils and implement sample_n_trajectories
+        train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
 
         return paths, envsteps_this_batch, train_video_paths
 
