@@ -109,4 +109,5 @@ class DQNAgent(object):
             self.num_param_updates += 1
 
         self.t += 1
+        # print("dqn agent returning log", log)
         return log

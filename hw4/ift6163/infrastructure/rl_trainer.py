@@ -196,7 +196,6 @@ class RL_Trainer(object):
                 # perform logging
                 print('\nBeginning logging procedure...')
                 if isinstance(self.agent, DQNAgent):
-                    print("logging dqn")
                     self.perform_dqn_logging(all_logs)
                 elif isinstance(self.agent, DDPGAgent):
                     self.perform_ddpg_logging(all_logs)
@@ -305,7 +304,6 @@ class RL_Trainer(object):
         for key, value in logs.items():
             print('{} : {}'.format(key, value))
             self.logger.log_scalar(value, key, self.agent.t)
-            # print("just logged the value of", value, "to", key, self.agent.t)
         print('Done logging...\n\n')
 
         self.logger.flush()
