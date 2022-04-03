@@ -116,6 +116,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor):
+        assert isinstance(observation, torch.FloatTensor)
+
         if self._discrete:
             logits = self._logits_na(observation)
             action_distribution = distributions.Categorical(logits=logits)
@@ -265,7 +267,15 @@ class MLPPolicyDeterministic(MLPPolicy):
         super().__init__(*args, **kwargs)
 
     def update(self, observations, q_fun):
-        # TODO: update the policy and return the loss
+        # DONE: update the policy and return the loss
         ## Hint you will need to use the q_fun for the loss
-        ## Hint: do not update the parameters for q_fun in the loss
+        ## Hint: do not update the parameters for q_fun in the loss  # TODO: not sure how to avoid this
+        self._optimizer.zero_grad()
+        observations = ptu.from_numpy(observations)
+        actions = self(observations)
+        tanh_actions = torch.tanh(actions)
+        loss = -torch.mean(q_fun.q_net(observations, tanh_actions))
+        loss.backward()
+        self._optimizer.step()
+
         return loss.item()

@@ -15,6 +15,7 @@ from ift6163.infrastructure.logger import Logger
 
 from ift6163.agents.dqn_agent import DQNAgent
 from ift6163.agents.ddpg_agent import DDPGAgent
+from ift6163.agents.td3_agent import TD3Agent
 from ift6163.infrastructure.dqn_utils import (
     get_wrapper_by_name,
     register_custom_envs,
@@ -135,7 +136,8 @@ class RL_Trainer(object):
         self.total_envsteps = 0
         self.start_time = time.time()
 
-        print_period = 1000 if isinstance(self.agent, DQNAgent) else 1
+        # print_period = 1000 if isinstance(self.agent, DQNAgent) else 1
+        print_period = 1000
 
         for itr in range(n_iter):
             if itr % print_period == 0:
@@ -191,6 +193,10 @@ class RL_Trainer(object):
                 print('\nBeginning logging procedure...')
                 if isinstance(self.agent, DQNAgent):
                     self.perform_dqn_logging(all_logs)
+                elif isinstance(self.agent, DDPGAgent):
+                    self.perform_ddpg_logging(all_logs)
+                elif isinstance(self.agent, TD3Agent):
+                    self.perform_dqn_logging(all_logs)
                 else:
                     self.perform_logging(itr, paths, eval_policy, train_video_paths, all_logs)
 
@@ -242,7 +248,7 @@ class RL_Trainer(object):
 
     # DONE: got from HW1
     def train_agent(self):
-        print('\nTraining agent using sampled data from replay buffer...')
+        # print('\nTraining agent using sampled data from replay buffer...')
         all_logs = []
         # print("my params are", self.params.keys())
         for train_step in range(self.params['num_agent_train_steps_per_iter']):
@@ -297,43 +303,37 @@ class RL_Trainer(object):
 
         self.logger.flush()
 
-    def perform_ddpg_logging(self):
+    def perform_ddpg_logging(self, all_logs):
+        last_log = all_logs[-1]
+
+        print("\nCollecting data for eval...")
+        eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self.env, self.agent.actor,
+                                                                         self.params['eval_batch_size'],
+                                                                         self.params['ep_len'])
+        # Note we don't have the training returns, so can't save that (fortunately, we don't care)
+        eval_returns = [path["reward"].sum() for path in eval_paths]
+        eval_ep_lens = [len(eval_path["reward"]) for eval_path in eval_paths]
 
         logs = OrderedDict()
-        logs['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-        logs['Policy Loss'] = np.mean(ptu.get_numpy(
-            policy_loss
-        ))
-        logs['Raw Policy Loss'] = np.mean(ptu.get_numpy(
-            raw_policy_loss
-        ))
-        logs['Preactivation Policy Loss'] = (
-                logs['Policy Loss'] -
-                logs['Raw Policy Loss']
-        )
-        logs.update(create_stats_ordered_dict(
-            'Q Predictions',
-            ptu.get_numpy(q_pred),
-        ))
-        logs.update(create_stats_ordered_dict(
-            'Q Targets',
-            ptu.get_numpy(q_target),
-        ))
-        logs.update(create_stats_ordered_dict(
-            'Bellman Errors',
-            ptu.get_numpy(bellman_errors),
-        ))
-        logs.update(create_stats_ordered_dict(
-            'Policy Action',
-            ptu.get_numpy(policy_actions),
-        ))
+        logs["Eval_AverageReturn"] = np.mean(eval_returns)
+        logs["Eval_StdReturn"] = np.std(eval_returns)
+        logs["Eval_MaxReturn"] = np.max(eval_returns)
+        logs["Eval_MinReturn"] = np.min(eval_returns)
+        logs["Eval_AverageEpLen"] = np.mean(eval_ep_lens)
 
+        logs["Train_EnvstepsSoFar"] = self.total_envsteps
+        logs["TimeSinceStart"] = time.time() - self.start_time
+        logs.update(last_log)
+
+        # perform the logging
         for key, value in logs.items():
             print('{} : {}'.format(key, value))
-            self.logger.log_scalar(value, key, itr)
+            self.logger.log_scalar(value, key, self.agent.t)
+        print('Done logging...\n\n')
+
+        self.logger.flush()
 
     def perform_logging(self, itr, paths, eval_policy, train_video_paths, all_logs):
-
         last_log = all_logs[-1]
 
         #######################
@@ -345,7 +345,7 @@ class RL_Trainer(object):
                                                                          self.params['ep_len'])
 
         # save eval rollouts as videos in tensorboard event file
-        if self.logvideo and train_video_paths != None:
+        if self.logvideo and train_video_paths is not None:
             print('\nCollecting video rollouts eval')
             eval_video_paths = utils.sample_n_trajectories(self.env, eval_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
 
@@ -360,6 +360,7 @@ class RL_Trainer(object):
 
         # save eval metrics
         if self.logmetrics:
+            assert paths is not None  # niki added
             # returns, for logging
             train_returns = [path["reward"].sum() for path in paths]
             eval_returns = [eval_path["reward"].sum() for eval_path in eval_paths]

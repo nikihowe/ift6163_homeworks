@@ -121,6 +121,6 @@ class DQNCritic(BaseCritic):
     def qa_values(self, obs):
         obs = ptu.from_numpy(obs)
         qa_values = self.q_net(obs)
-        # if self.double_q:  # As per Mahan's suggestion
+        # if self.double_q:  # Glen thinks this is good to comment out
         #     qa_values = qa_values.view(-1, 2, self.ac_dim)
         return ptu.to_numpy(qa_values)

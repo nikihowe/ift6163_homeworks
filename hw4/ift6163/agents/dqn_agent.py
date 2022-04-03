@@ -90,9 +90,8 @@ class DQNAgent(object):
     def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
         log = {}
         if (self.t > self.learning_starts
-                and self.t % self.learning_freq == 0
-                and self.replay_buffer.can_sample(self.batch_size)
-        ):
+            and self.t % self.learning_freq == 0
+            and self.replay_buffer.can_sample(self.batch_size)):
 
             # DONE fill in the call to the update function using the appropriate tensors
             log = self.critic.update(

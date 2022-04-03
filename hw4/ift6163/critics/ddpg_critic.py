@@ -1,10 +1,11 @@
-from .base_critic import BaseCritic
+import numpy as np
 import torch
 import torch.optim as optim
 from torch.nn import utils
 from torch import nn
 import copy
 
+from .base_critic import BaseCritic
 from ift6163.infrastructure import pytorch_util as ptu
 from ift6163.policies.MLP_policy import ConcatMLP
 
@@ -32,7 +33,7 @@ class DDPGCritic(BaseCritic):
         hparams = copy.deepcopy(hparams)
         hparams['ob_dim'] = hparams['ob_dim'] + hparams['ac_dim']
         hparams['ac_dim'] = 1
-        self.q_net = ConcatMLP(   
+        self.q_net = ConcatMLP(
             hparams['ac_dim'],
             hparams['ob_dim'],
             hparams['n_layers_critic'],
@@ -41,8 +42,8 @@ class DDPGCritic(BaseCritic):
             learning_rate=hparams['critic_learning_rate'],
             nn_baseline=False,
             deterministic=True
-            )
-        self.q_net_target = ConcatMLP(   
+        )
+        self.q_net_target = ConcatMLP(
             hparams['ac_dim'],
             hparams['ob_dim'],
             hparams['n_layers_critic'],
@@ -51,20 +52,26 @@ class DDPGCritic(BaseCritic):
             learning_rate=hparams['critic_learning_rate'],
             nn_baseline=False,
             deterministic=True
-            )
-        # self.learning_rate_scheduler = optim.lr_scheduler.LambdaLR(
-        #     self.optimizer,
-        #     self.optimizer_spec.learning_rate_schedule,
-        # 
+        )
+
+
+
         self.optimizer = optim.Adam(
             self.q_net.parameters(),
             self.learning_rate,
-            )
+        )
         self.loss = nn.SmoothL1Loss()  # AKA Huber loss
         self.q_net.to(ptu.device)
         self.q_net_target.to(ptu.device)
         self.actor = actor
-        self.actor_target = copy.deepcopy(actor) 
+        self.actor_target = copy.deepcopy(actor)
+        self.polyak_avg = hparams['polyak_avg']
+
+    def __post_init__(self):  # Niki added
+        self.learning_rate_scheduler = optim.lr_scheduler.LambdaLR(
+            self.optimizer,
+            self.optimizer_spec.learning_rate_schedule,
+        )
 
     def update(self, ob_no, ac_na, next_ob_no, reward_n, terminal_n):
         """
@@ -86,24 +93,27 @@ class DDPGCritic(BaseCritic):
         ob_no = ptu.from_numpy(ob_no)
         ac_na = ptu.from_numpy(ac_na).to(torch.long)
         next_ob_no = ptu.from_numpy(next_ob_no)
-        max_ac = ptu.from_numpy(max_action)
+        # max_ac = ptu.from_numpy(max_action)  # TODO: where is max_action defined?
         reward_n = ptu.from_numpy(reward_n)
         terminal_n = ptu.from_numpy(terminal_n)
 
         ### Hint: 
         # qa_t_values = self.q_net(ob_no, ac_na)
-        qa_t_values = TODO
-        
-        # TODO compute the Q-values from the target network 
-        ## Hint: you will need to use the target policy
-        qa_tp1_values = TODO
+        q_t_values = self.q_net(ob_no, ac_na).squeeze()  # TODO: why?
 
-        # TODO compute targets for minimizing Bellman error
+        # DONE compute the Q-values from the target network
+        ## Hint: you will need to use the target policy
+        next_action = self.actor_target.get_action(next_ob_no)
+        tanh_next_action = np.tanh(next_action)
+        qa_tp1_values = self.q_net_target(next_ob_no, ptu.from_numpy(tanh_next_action)).squeeze()  # TODO: why?
+
+        # DONE compute targets for minimizing Bellman error
         # HINT: as you saw in lecture, this would be:
-            #currentReward + self.gamma * qValuesOfNextTimestep * (not terminal)
-        target = TODO
+        # currentReward + self.gamma * qValuesOfNextTimestep * (not terminal)
+        target = reward_n + self.gamma * qa_tp1_values * (1 - terminal_n)
         target = target.detach()
 
+        # print(q_t_values.shape, target.shape)
         assert q_t_values.shape == target.shape
         loss = self.loss(q_t_values, target)
 
@@ -111,7 +121,7 @@ class DDPGCritic(BaseCritic):
         loss.backward()
         utils.clip_grad_value_(self.q_net.parameters(), self.grad_norm_clipping)
         self.optimizer.step()
-        self.learning_rate_scheduler.step()
+        # self.learning_rate_scheduler.step()
         return {
             'Training Loss': ptu.to_numpy(loss),
         }
@@ -121,15 +131,17 @@ class DDPGCritic(BaseCritic):
                 self.q_net_target.parameters(), self.q_net.parameters()
         ):
             ## Perform Polyak averaging
-            y = TODO
+            y = self.polyak_avg * param + (1 - self.polyak_avg) * target_param  # TODO: do I need to extract data here?
+            target_param.data.copy_(y)
         for target_param, param in zip(
                 self.actor_target.parameters(), self.actor.parameters()
         ):
             ## Perform Polyak averaging for the target policy
-            y = TODO
+            y = self.polyak_avg * param + (1 - self.polyak_avg) * target_param  # TODO: same as above
+            target_param.data.copy_(y)
 
     def qa_values(self, obs):
         obs = ptu.from_numpy(obs)
-        ## HINT: the q function take two arguments  
-        qa_values = TODO
+        ## HINT: the q function take two arguments
+        qa_values = self.q_net(obs, self.actor.get_action(obs))  # TODO: is this the correct action?
         return ptu.to_numpy(qa_values)
