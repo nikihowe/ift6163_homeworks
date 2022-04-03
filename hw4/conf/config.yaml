@@ -22,7 +22,8 @@ target_update_freq: 1
 exploration_schedule: 0
 optimizer_spec:  0
 replay_buffer_size: 1000000
-frame_history_len: 1
+frame_history_len: 1python run_hw4.py env_name=MsPacman-v0 n_iter=10000 exp_name=q1
+
 gamma: 0.99
 n_layers_critic: 2
 size_hidden_critic: 64

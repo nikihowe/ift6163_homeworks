@@ -88,15 +88,18 @@ class DQNAgent(object):
             return [], [], [], [], []
 
     def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
+        # print("training a dqn agent")
         log = {}
         if (self.t > self.learning_starts
-            and self.t % self.learning_freq == 0
-            and self.replay_buffer.can_sample(self.batch_size)):
+                and self.t % self.learning_freq == 0
+                and self.replay_buffer.can_sample(self.batch_size)):
 
             # DONE fill in the call to the update function using the appropriate tensors
             log = self.critic.update(
                 ob_no, ac_na, next_ob_no, re_n, terminal_n
             )
+
+            print("we updated the critic and now the log is", log)
 
             # DONE update the target network periodically
             # HINT: your critic already has this functionality implemented

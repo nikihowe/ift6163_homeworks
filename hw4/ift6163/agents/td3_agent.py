@@ -18,6 +18,7 @@ class TD3Agent(DDPGAgent):
                                self.optimizer_spec)
 
     def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
+        # print("training a td3 agent")
         log = {}
         if (self.t > self.learning_starts
                 and self.t % self.learning_freq == 0
@@ -28,13 +29,13 @@ class TD3Agent(DDPGAgent):
                 ob_no, ac_na, next_ob_no, re_n, terminal_n
             )
 
-            actor_loss = self.actor.update(
-                ob_no, self.q_fun
-            )
-
-            log = {**log, 'actor_loss': actor_loss}
-
             if self.num_param_updates % self.target_update_freq == 0:
+                actor_loss = self.actor.update(
+                    ob_no, self.q_fun
+                )
+
+                log = {**log, 'actor_loss': actor_loss}
+
                 self.q_fun.update_target_network()
 
             self.num_param_updates += 1

@@ -101,6 +101,7 @@ class DDPGAgent(object):
             return [], [], [], [], []
 
     def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
+        print("training a ddpg agent")
         log = {}
         if (self.t > self.learning_starts
                 and self.t % self.learning_freq == 0

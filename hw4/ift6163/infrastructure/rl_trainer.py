@@ -187,11 +187,16 @@ class RL_Trainer(object):
                 print("\nTraining agent...")
             all_logs = self.train_agent()
 
+            # print("the logs are of length", len(all_logs))
+            # print("the first entry is", all_logs[0])
+            # print("the last entry is", all_logs[-1])
+
             # log/save
             if self.logvideo or self.logmetrics:
                 # perform logging
                 print('\nBeginning logging procedure...')
                 if isinstance(self.agent, DQNAgent):
+                    print("logging dqn")
                     self.perform_dqn_logging(all_logs)
                 elif isinstance(self.agent, DDPGAgent):
                     self.perform_ddpg_logging(all_logs)
@@ -262,6 +267,7 @@ class RL_Trainer(object):
             # HINT: use the agent's train function
             # HINT: keep the agent's training log for debugging
             train_log = self.agent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
+            # print(f"after step {train_step} of training, the logs are {train_log}")
             all_logs.append(train_log)
         return all_logs
 
@@ -299,6 +305,7 @@ class RL_Trainer(object):
         for key, value in logs.items():
             print('{} : {}'.format(key, value))
             self.logger.log_scalar(value, key, self.agent.t)
+            # print("just logged the value of", value, "to", key, self.agent.t)
         print('Done logging...\n\n')
 
         self.logger.flush()
