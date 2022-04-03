@@ -1,4 +1,5 @@
 from .ddpg_critic import DDPGCritic
+import numpy as np
 import torch
 import torch.optim as optim
 from torch.nn import utils
@@ -31,20 +32,26 @@ class TD3Critic(DDPGCritic):
         ob_no = ptu.from_numpy(ob_no)
         ac_na = ptu.from_numpy(ac_na).to(torch.long)
         next_ob_no = ptu.from_numpy(next_ob_no)
-        max_ac = ptu.from_numpy(max_action)
+        # max_ac = ptu.from_numpy(max_action)
         reward_n = ptu.from_numpy(reward_n)
         terminal_n = ptu.from_numpy(terminal_n)
 
-        qa_t_values = TODO
+        q_t_values = self.q_net(ob_no, ac_na).squeeze()
         
         # TODO compute the Q-values from the target network 
         ## Hint: you will need to use the target policy
-        qa_tp1_values = TODO
+        next_action = self.actor_target.get_action(next_ob_no)
+        eps = np.random.normal(0, self.td3_noise, size=next_action.shape)
+        clipped_eps = np.clip(eps, -0.5, 0.5)  # clipped value taken from https://spinningup.openai.com/en/stable/_modules/spinup/algos/td3/td3.html
+        # tanh_next_action = np.tanh(next_action)
+        next_action = next_action + clipped_eps
+        qa_tp1_values = self.q_net_target(next_ob_no, ptu.from_numpy(next_action)).squeeze()  # TODO: why?
+
 
         # TODO compute targets for minimizing Bellman error
         # HINT: as you saw in lecture, this would be:
             #currentReward + self.gamma * qValuesOfNextTimestep * (not terminal)
-        target = TODO
+        target = reward_n + self.gamma * qa_tp1_values * (1 - terminal_n)
         target = target.detach()
 
         assert q_t_values.shape == target.shape
@@ -54,7 +61,7 @@ class TD3Critic(DDPGCritic):
         loss.backward()
         utils.clip_grad_value_(self.q_net.parameters(), self.grad_norm_clipping)
         self.optimizer.step()
-        self.learning_rate_scheduler.step()
+        # self.learning_rate_scheduler.step()
         return {
             'Training Loss': ptu.to_numpy(loss),
         }

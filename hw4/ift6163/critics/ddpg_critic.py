@@ -54,8 +54,6 @@ class DDPGCritic(BaseCritic):
             deterministic=True
         )
 
-
-
         self.optimizer = optim.Adam(
             self.q_net.parameters(),
             self.learning_rate,
@@ -66,12 +64,13 @@ class DDPGCritic(BaseCritic):
         self.actor = actor
         self.actor_target = copy.deepcopy(actor)
         self.polyak_avg = hparams['polyak_avg']
+        self.td3_noise = hparams['td3_target_policy_noise']
 
-    def __post_init__(self):  # Niki added
-        self.learning_rate_scheduler = optim.lr_scheduler.LambdaLR(
-            self.optimizer,
-            self.optimizer_spec.learning_rate_schedule,
-        )
+    # def __post_init__(self):  # Niki added
+    #     self.learning_rate_scheduler = optim.lr_scheduler.LambdaLR(
+    #         self.optimizer,
+    #         self.optimizer_spec.learning_rate_schedule,
+    #     )
 
     def update(self, ob_no, ac_na, next_ob_no, reward_n, terminal_n):
         """

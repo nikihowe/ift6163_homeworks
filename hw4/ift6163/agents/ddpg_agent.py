@@ -74,7 +74,9 @@ class DDPGAgent(object):
         # sample around the mean output the actor network
         # with standard deviation of 0.1
         previous_frames = self.replay_buffer.encode_recent_observation()
-        action = self.actor.get_action(previous_frames) + np.random.normal(0, 0.1, size=self.num_actions)
+        deterministic_action = self.actor.get_action(previous_frames)
+        # print("the action size was", deterministic_action.shape)
+        action = deterministic_action + np.random.normal(0, 0.1, size=deterministic_action.shape)
 
         # DONE take a step in the environment using the action from the policy
         # HINT1: remember that self.last_obs must always point to the newest/latest observation

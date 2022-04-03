@@ -7,38 +7,37 @@ import copy
 
 from ift6163.agents.ddpg_agent import DDPGAgent
 
+
 class TD3Agent(DDPGAgent):
     def __init__(self, env, agent_params):
 
         super().__init__(env, agent_params)
-        
-        self.q_fun = TD3Critic(self.actor, 
-                               agent_params, 
+
+        self.q_fun = TD3Critic(self.actor,
+                               agent_params,
                                self.optimizer_spec)
 
-    def step_env(self):
-        """
-            Step the env and store the transition
-            At the end of this block of code, the simulator
-            should have been advanced one step, and the replay buffer should contain
-            one more transition. Note that self.last_obs must always
-            points to the new latest observation.
-        """
-        self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
+    def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
+        log = {}
+        if (self.t > self.learning_starts
+                and self.t % self.learning_freq == 0
+                and self.replay_buffer.can_sample(self.batch_size)
+        ):
 
-        eps = 0.05
-        perform_random_action = np.random.random() < eps
+            log = self.q_fun.update(
+                ob_no, ac_na, next_ob_no, re_n, terminal_n
+            )
 
-        if perform_random_action:
-            action = self.env.action_space.sample()
-        else:
-            previous_frames = self.replay_buffer.encode_recent_observation()
-            action = self.actor.get_action(previous_frames)
+            actor_loss = self.actor.update(
+                ob_no, self.q_fun
+            )
 
-        obs, reward, done, info = self.env.step(action)
-        self.last_obs = obs
+            log = {**log, 'actor_loss': actor_loss}
 
-        self.replay_buffer.store_effect(self.replay_buffer_idx, action, reward, done)
+            if self.num_param_updates % self.target_update_freq == 0:
+                self.q_fun.update_target_network()
 
-        if done:
-            self.last_obs = self.env.reset()
+            self.num_param_updates += 1
+
+        self.t += 1
+        return log
