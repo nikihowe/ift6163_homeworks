@@ -99,7 +99,7 @@ class DQNAgent(object):
                 ob_no, ac_na, next_ob_no, re_n, terminal_n
             )
 
-            print("we updated the critic and now the log is", log)
+            # print("we updated the critic and now the log is", log)
 
             # DONE update the target network periodically
             # HINT: your critic already has this functionality implemented
