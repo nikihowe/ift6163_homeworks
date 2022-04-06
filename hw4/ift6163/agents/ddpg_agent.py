@@ -60,16 +60,6 @@ class DDPGAgent(object):
         # in dqn_utils.py
         self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
 
-        # DONE add noise to the deterministic policy
-        # eps = 0.05  # exploit 95% of the time and explore 5% of the time
-        # perform_random_action = np.random.random() < eps  # no self.t here
-        # HINT: take random action
-        # if perform_random_action:
-        #     action = self.env.action_space.sample()
-        # else:
-        #     previous_frames = self.replay_buffer.encode_recent_observation()
-        #     action = self.actor.get_action(previous_frames)
-
         # Conversation with Glen
         # sample around the mean output the actor network
         # with standard deviation of 0.1
